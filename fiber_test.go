@@ -286,3 +286,14 @@ func TestRoutingGroup(t *testing.T){
 	assert.Equal(t, "Hello World!", string(bytes))
 }
 
+func TestStatic(t *testing.T){
+	app.Static("/public", "./source")
+
+	request := httptest.NewRequest("GET", "/public/example.txt", nil)
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "This is sample text", string(bytes))
+}
