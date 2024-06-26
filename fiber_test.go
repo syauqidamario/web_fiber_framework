@@ -42,7 +42,7 @@ func TestCtx(t *testing.T){
 	assert.Nil(t, err)
 	bytes, err := io.ReadAll(response.Body)
 	assert.Nil(t, err)
-	assert.Equal(t, "Hello Syauqi", string(bytes))
+	assert.Equal(t, "Reigster Success Syauqi", string(bytes))
 }
 
 func TestHttpRequest(t *testing.T){
@@ -94,7 +94,7 @@ func TestFormRequest(t *testing.T) {
 
 	bytes, err := io.ReadAll(response.Body)
 	assert.Nil(t, err)
-	assert.Equal(t, "Hello Syauqi", string(bytes))
+	assert.Equal(t, "Register Success Syauqi", string(bytes))
 }
 
 var contohFile []byte
@@ -159,5 +159,92 @@ func TestRequestBody(t *testing.T) {
 
 	bytes, err := io.ReadAll(response.Body)
 	assert.Nil(t, err)
-	assert.Equal(t, "Hello Syauqi", string(bytes))
+	assert.Equal(t, "Register Success Syauqi", string(bytes))
+}
+
+type RegisterRequest struct {
+	Username string `json:"username", xml:"username" form:"username"`
+	Password string `json:"password", xml:"password" form:"password"`
+	Name string `json:"name", xml:"name" form:"name"`
+}
+
+func TestBodyParser(t *testing.T){
+	app.Post("/register", func(ctx *fiber.Ctx) error{
+		request := new(RegisterRequest)
+		err := ctx.BodyParser(request)
+		if err != nil {
+			return err
+		}
+		return ctx.SendString("Hello " + request.Username)
+	})
+}
+
+func TestBodyParserJSON(t *testing.T) {
+	TestBodyParser(t)
+
+	body := strings.NewReader(`{"username":"Syauqi", "password":"himitsudesu", "name":"Syauqi Djohan"}`)
+	request := httptest.NewRequest("POST", "/register", body)
+	request.Header.Set("Content-Type", "application/json")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Register Success Syauqi", string(bytes))
+}
+
+func TestBodyParserForm(t *testing.T) {
+	TestBodyParser(t)
+
+	body := strings.NewReader(`username=Syauqi&password=himitsudesu&name=Syauqi+Djohan`)
+	request := httptest.NewRequest("POST", "/register", body)
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Register Success Syauqi", string(bytes))
+}
+
+func TestBodyParserXML(t *testing.T) {
+	TestBodyParser(t)
+
+	body := strings.NewReader(
+		`<RegisterRequest>
+			<username>Syauqi</username>
+			<password>himitsudesu</password>
+			<name>Syauqi Djohan</name>
+		</RegisterRequest>
+		`)
+	request := httptest.NewRequest("POST", "/register", body)
+	request.Header.Set("Content-Type", "application/xml")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Register Success Syauqi", string(bytes))
+}
+
+func TestResponseJSON(t *testing.T) {
+	app.Get("/user", func(ctx *fiber.Ctx) error {
+		return ctx.JSON(fiber.Map{
+			"username": "syauqi",
+			"name":     "Syauqi Djohan",
+		})
+	})
+
+	request := httptest.NewRequest("GET", "/user", nil)
+	request.Header.Set("Accept", "application/json")
+	response, err := app.Test(request)
+	assert.Nil(t, err)
+	assert.Equal(t, 200, response.StatusCode)
+
+	bytes, err := io.ReadAll(response.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, `{"name":"Syauqi Djohan","username":"syauqi"}`, string(bytes))
 }
